@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<h1> BLOOP </h1>
-<p1> Play the piano with either your keyboard or your mouse </p1>
   <meta charset="UTF-8">
-  <title>Two-Octave Piano with Filter, ADSR, and Waveform Selector</title>
+  <title>BLOOP Piano</title>
   <style>
     canvas {
       border: 1px solid black;
@@ -22,277 +20,262 @@
 </head>
 <body>
 
-  <canvas id="piano" width="840" height="200"></canvas>
+<h1>BLOOP</h1>
+<p>Play the piano with either your keyboard or your mouse</p>
 
-  <!-- Controls Section -->
-  <div class="controls">
-    <label>
-      Low-Pass Filter Frequency (Hz):
-      <input type="range" id="lowpass" min="200" max="5000" value="5000">
-    </label>
-  </div>
+<canvas id="piano" width="840" height="200"></canvas>
 
-  <!-- ADSR Controls for Volume -->
-  <div class="controls">
-    <h3>ADSR Volume Envelope</h3>
-    <label>
-      Attack (s):
-      <input type="range" id="attack" min="0" max="2" step="0.01" value="0.1">
-    </label>
-    <label>
-      Decay (s):
-      <input type="range" id="decay" min="0" max="2" step="0.01" value="0.2">
-    </label>
-    <label>
-      Sustain (0–1):
-      <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.7">
-    </label>
-    <label>
-      Release (s):
-      <input type="range" id="release" min="0" max="3" step="0.01" value="0.5">
-    </label>
-  </div>
+<!-- Controls -->
+<div class="controls">
+  <label>
+    Low-Pass Filter Frequency (Hz):
+    <input type="range" id="lowpass" min="200" max="5000" value="5000">
+  </label>
+</div>
 
-  <!-- ADSR Controls for Filter -->
-  <div class="controls">
-    <h3>Filter ADSR Envelope</h3>
-    <label>
-      Filter Attack (s):
-      <input type="range" id="f-attack" min="0" max="2" step="0.01" value="0.05">
-    </label>
-    <label>
-      Filter Decay (s):
-      <input type="range" id="f-decay" min="0" max="2" step="0.01" value="0.2">
-    </label>
-    <label>
-      Filter Sustain (Hz):
-      <input type="range" id="f-sustain" min="300" max="5000" step="10" value="1000">
-    </label>
-    <label>
-      Filter Release (s):
-      <input type="range" id="f-release" min="0" max="3" step="0.01" value="0.3">
-    </label>
-  </div>
+<div class="controls">
+  <h3>ADSR Volume Envelope</h3>
+  <label>Attack (ms):
+    <input type="range" id="attack" min="0" max="2000" step="1" value="100">
+    <span id="attack-val">100 ms</span>
+  </label>
+  <label>Decay (ms):
+    <input type="range" id="decay" min="0" max="2000" step="1" value="200">
+    <span id="decay-val">200 ms</span>
+  </label>
+  <label>Sustain (0–1):
+    <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.7">
+  </label>
+  <label>Release (ms):
+    <input type="range" id="release" min="0" max="3000" step="1" value="500">
+    <span id="release-val">500 ms</span>
+  </label>
+</div>
 
-  <!-- Waveform Selector -->
-  <div class="controls">
-    <label>
-      Waveform:
-      <select id="waveform">
-        <option value="sine">Sine</option>
-        <option value="sawtooth">Sawtooth</option>
-        <option value="square">Square</option>
-        <option value="triangle">Triangle</option>
-      </select>
-    </label>
-  </div>
+<div class="controls">
+  <h3>Filter ADSR Envelope</h3>
+  <label>Filter Attack (ms):
+    <input type="range" id="f-attack" min="0" max="2000" step="1" value="50">
+    <span id="f-attack-val">50 ms</span>
+  </label>
+  <label>Filter Decay (ms):
+    <input type="range" id="f-decay" min="0" max="2000" step="1" value="200">
+    <span id="f-decay-val">200 ms</span>
+  </label>
+  <label>Filter Sustain (Hz):
+    <input type="range" id="f-sustain" min="300" max="5000" step="10" value="1000">
+  </label>
+  <label>Filter Release (ms):
+    <input type="range" id="f-release" min="0" max="3000" step="1" value="300">
+    <span id="f-release-val">300 ms</span>
+  </label>
+</div>
 
-  <script>
-    const canvas = document.getElementById("piano");
-    const ctx = canvas.getContext("2d");
+<div class="controls">
+  <label>
+    Waveform:
+    <select id="waveform">
+      <option value="sine">Sine</option>
+      <option value="sawtooth">Sawtooth</option>
+      <option value="square">Square</option>
+      <option value="triangle">Triangle</option>
+    </select>
+  </label>
+</div>
 
-    const whiteKeyWidth = 60;
-    const whiteKeyHeight = 200;
-    const blackKeyWidth = 40;
-    const blackKeyHeight = 120;
+<script>
+const canvas = document.getElementById("piano");
+const ctx = canvas.getContext("2d");
 
-    const whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-    const blackOffsets = {
-      'C': 'C#',
-      'D': 'D#',
-      'F': 'F#',
-      'G': 'G#',
-      'A': 'A#'
-    };
+const whiteKeyWidth = 60;
+const whiteKeyHeight = 200;
+const blackKeyWidth = 40;
+const blackKeyHeight = 120;
 
-    const startOctave = 4;
-    const numOctaves = 2;
+const whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const blackOffsets = { 'C': 'C#', 'D': 'D#', 'F': 'F#', 'G': 'G#', 'A': 'A#' };
 
-    const keys = [];
+const startOctave = 4;
+const numOctaves = 2;
+const keys = [];
 
-    function generateKeys() {
-      keys.length = 0;
-
-      for (let o = 0; o < numOctaves; o++) {
-        for (let i = 0; i < whiteNotes.length; i++) {
-          const note = whiteNotes[i] + (startOctave + o);
-          const x = (o * 7 + i) * whiteKeyWidth;
-          keys.push({
-            note,
-            x,
-            width: whiteKeyWidth,
-            height: whiteKeyHeight,
-            color: "white",
-            isBlack: false,
-            isPressed: false // Track whether the key is pressed
-          });
-        }
-
-        for (let i = 0; i < whiteNotes.length; i++) {
-          const base = whiteNotes[i];
-          const black = blackOffsets[base];
-          if (!black) continue;
-          const note = black + (startOctave + o);
-          const x = (o * 7 + i) * whiteKeyWidth + whiteKeyWidth - blackKeyWidth / 2;
-          keys.push({
-            note,
-            x,
-            width: blackKeyWidth,
-            height: blackKeyHeight,
-            color: "black",
-            isBlack: true,
-            isPressed: false // Track whether the key is pressed
-          });
-        }
-      }
+function generateKeys() {
+  keys.length = 0;
+  for (let o = 0; o < numOctaves; o++) {
+    for (let i = 0; i < whiteNotes.length; i++) {
+      const note = whiteNotes[i] + (startOctave + o);
+      const x = (o * 7 + i) * whiteKeyWidth;
+      keys.push({ note, x, width: whiteKeyWidth, height: whiteKeyHeight, color: "white", isBlack: false, isPressed: false });
     }
-
-    generateKeys();
-
-    function drawPiano() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (const key of keys) {
-        ctx.fillStyle = key.isPressed ? "lightgreen" : key.color;
-        ctx.fillRect(key.x, 0, key.width, key.height);
-        ctx.strokeRect(key.x, 0, key.width, key.height);
-      }
+    for (let i = 0; i < whiteNotes.length; i++) {
+      const base = whiteNotes[i];
+      const black = blackOffsets[base];
+      if (!black) continue;
+      const note = black + (startOctave + o);
+      const x = (o * 7 + i) * whiteKeyWidth + whiteKeyWidth - blackKeyWidth / 2;
+      keys.push({ note, x, width: blackKeyWidth, height: blackKeyHeight, color: "black", isBlack: true, isPressed: false });
     }
+  }
+}
 
-    drawPiano();
+function drawPiano() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const white = keys.filter(k => !k.isBlack);
+  const black = keys.filter(k => k.isBlack);
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  white.forEach(key => {
+    ctx.fillStyle = key.isPressed ? "lightgreen" : key.color;
+    ctx.fillRect(key.x, 0, key.width, key.height);
+    ctx.strokeRect(key.x, 0, key.width, key.height);
+  });
 
-    const lowpassSlider = document.getElementById("lowpass");
-    const filterNode = audioCtx.createBiquadFilter();
-    filterNode.type = "lowpass";
-    filterNode.frequency.value = +lowpassSlider.value;
+  black.forEach(key => {
+    ctx.fillStyle = key.isPressed ? "lightgreen" : key.color;
+    ctx.fillRect(key.x, 0, key.width, key.height);
+  });
+}
 
-    lowpassSlider.addEventListener("input", () => {
-      filterNode.frequency.setValueAtTime(+lowpassSlider.value, audioCtx.currentTime);
-    });
+generateKeys();
+drawPiano();
 
-    function noteToFrequency(note) {
-      const A4 = 440;
-      const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-      const name = note.slice(0, -1);
-      const octave = parseInt(note.slice(-1));
-      const n = notes.indexOf(name);
-      const semitonesFromA4 = (octave - 4) * 12 + (n - 9);
-      return A4 * Math.pow(2, semitonesFromA4 / 12);
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const activeNotes = {};
+
+function noteToFrequency(note) {
+  const A4 = 440;
+  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const name = note.slice(0, -1);
+  const octave = parseInt(note.slice(-1));
+  const n = notes.indexOf(name);
+  const semitonesFromA4 = (octave - 4) * 12 + (n - 9);
+  return A4 * Math.pow(2, semitonesFromA4 / 12);
+}
+
+function playNote(note) {
+  const freq = noteToFrequency(note);
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass";
+
+  const a = +document.getElementById("attack").value / 1000;
+  const d = +document.getElementById("decay").value / 1000;
+  const s = +document.getElementById("sustain").value;
+  const r = +document.getElementById("release").value / 1000;
+
+  const fa = +document.getElementById("f-attack").value / 1000;
+  const fd = +document.getElementById("f-decay").value / 1000;
+  const fs = +document.getElementById("f-sustain").value;
+  const fr = +document.getElementById("f-release").value / 1000;
+
+  const now = audioCtx.currentTime;
+
+  gainNode.gain.cancelScheduledValues(now);
+  gainNode.gain.setValueAtTime(0, now);
+  gainNode.gain.linearRampToValueAtTime(1, now + a);
+  gainNode.gain.linearRampToValueAtTime(s, now + a + d);
+  gainNode.gain.setValueAtTime(s, now + a + d);
+  gainNode.gain.linearRampToValueAtTime(0, now + a + d + r);
+
+  filter.frequency.cancelScheduledValues(now);
+  filter.frequency.setValueAtTime(5000, now);
+  filter.frequency.linearRampToValueAtTime(fs, now + fa + fd);
+  filter.frequency.setValueAtTime(fs, now + fa + fd);
+  filter.frequency.linearRampToValueAtTime(200, now + fa + fd + fr);
+
+  osc.type = document.getElementById("waveform").value;
+  osc.frequency.setValueAtTime(freq, now);
+
+  osc.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  osc.start(now);
+  activeNotes[note] = { osc, gainNode };
+}
+
+function stopNote(note) {
+  if (activeNotes[note]) {
+    const { osc, gainNode } = activeNotes[note];
+    const now = audioCtx.currentTime;
+    gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+    osc.stop(now + 0.6);
+    delete activeNotes[note];
+  }
+}
+
+function highlightKey(key) {
+  key.isPressed = true;
+  drawPiano();
+}
+function unhighlightKey(key) {
+  key.isPressed = false;
+  drawPiano();
+}
+
+const keyMap = {
+  'a': 'C4',  'w': 'C#4', 's': 'D4',  'e': 'D#4', 'd': 'E4',
+  'f': 'F4',  't': 'F#4', 'g': 'G4',  'y': 'G#4', 'h': 'A4',
+  'u': 'A#4', 'j': 'B4',  'k': 'C5',  'o': 'C#5', 'l': 'D5',
+  'p': 'D#5', ';': 'E5',  "'": 'F5'
+};
+
+document.addEventListener("keydown", e => {
+  const note = keyMap[e.key.toLowerCase()];
+  if (note && !activeNotes[note]) {
+    playNote(note);
+    const key = keys.find(k => k.note === note);
+    if (key) highlightKey(key);
+  }
+});
+document.addEventListener("keyup", e => {
+  const note = keyMap[e.key.toLowerCase()];
+  if (note) {
+    stopNote(note);
+    const key = keys.find(k => k.note === note);
+    if (key) unhighlightKey(key);
+  }
+});
+
+canvas.addEventListener("mousedown", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  // Check black keys first!
+  const sortedKeys = [...keys].sort((a, b) => b.isBlack - a.isBlack);
+  for (const key of sortedKeys) {
+    if (x >= key.x && x <= key.x + key.width && y >= 0 && y <= key.height) {
+      playNote(key.note);
+      highlightKey(key);
+      key.mouseDown = true;
+      break;
     }
+  }
+});
 
-    const activeNotes = {};
-
-    function playNote(note) {
-      const freq = noteToFrequency(note);
-      const osc = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = "lowpass";
-
-      // Volume ADSR
-      const a = parseFloat(document.getElementById("attack").value);
-      const d = parseFloat(document.getElementById("decay").value);
-      const s = parseFloat(document.getElementById("sustain").value);
-      const r = parseFloat(document.getElementById("release").value);
-
-      // Filter ADSR
-      const fa = parseFloat(document.getElementById("f-attack").value);
-      const fd = parseFloat(document.getElementById("f-decay").value);
-      const fs = parseFloat(document.getElementById("f-sustain").value);
-      const fr = parseFloat(document.getElementById("f-release").value);
-
-      const now = audioCtx.currentTime;
-
-      // Volume ADSR
-      gainNode.gain.cancelScheduledValues(now);
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(1, now + a);
-      gainNode.gain.linearRampToValueAtTime(s, now + a + d);
-      gainNode.gain.setValueAtTime(s, now + a + d);
-      gainNode.gain.linearRampToValueAtTime(0, now + a + d + r);
-
-      // Filter ADSR: starting from 5000 Hz (max brightness) down to fs
-      filter.frequency.cancelScheduledValues(now);
-      filter.frequency.setValueAtTime(5000, now);
-      filter.frequency.linearRampToValueAtTime(fs, now + fa + fd); // fall to sustain
-      filter.frequency.setValueAtTime(fs, now + fa + fd);
-      filter.frequency.linearRampToValueAtTime(200, now + fa + fd + fr); // release to low
-
-      // Set waveform type
-      const waveType = document.getElementById("waveform").value;
-      osc.type = waveType;
-
-      // Oscillator setup
-      osc.frequency.setValueAtTime(freq, now);
-
-      // Connect audio chain: Osc → Filter → Gain → Destination
-      osc.connect(filter);
-      filter.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      osc.start(now);
-
-      // Store the oscillator and gain node for potential release later
-      activeNotes[note] = { osc, gainNode };
-    }
-
-    function stopNote(note) {
-      if (activeNotes[note]) {
-        const { osc, gainNode } = activeNotes[note];
-        const now = audioCtx.currentTime;
-
-        // Apply release phase
-        gainNode.gain.linearRampToValueAtTime(0, now + 0.5);  // Short release
-        osc.stop(now + 0.6); // Stop just after release
-
-        delete activeNotes[note];
-      }
-    }
-
-    function highlightKey(key) {
-      key.isPressed = true;
-      drawPiano();
-    }
-
-    function unhighlightKey(key) {
-      key.isPressed = false;
-      drawPiano();
-    }
-
-    // Listen for keyboard events
-    document.addEventListener("keydown", (e) => {
-      const note = keyMap[e.key.toLowerCase()];
-      if (note && !activeNotes[note]) {
-        playNote(note);
-        const key = keys.find(k => k.note === note);
-        if (key) highlightKey(key);
+["mouseup", "mouseleave"].forEach(event => {
+  canvas.addEventListener(event, () => {
+    keys.forEach(key => {
+      if (key.mouseDown) {
+        stopNote(key.note);
+        unhighlightKey(key);
+        key.mouseDown = false;
       }
     });
+  });
+});
 
-    document.addEventListener("keyup", (e) => {
-      const note = keyMap[e.key.toLowerCase()];
-      if (note) {
-        stopNote(note);
-        const key = keys.find(k => k.note === note);
-        if (key) unhighlightKey(key);
-      }
-    });
+function updateSliderDisplay(id) {
+  const slider = document.getElementById(id);
+  const display = document.getElementById(id + "-val");
+  if (display) display.textContent = slider.value + " ms";
+}
 
-    const keyMap = {
-      'a': 'C4',  'w': 'C#4',
-      's': 'D4',  'e': 'D#4',
-      'd': 'E4',
-      'f': 'F4',  't': 'F#4',
-      'g': 'G4',  'y': 'G#4',
-      'h': 'A4',  'u': 'A#4',
-      'j': 'B4',
-      'k': 'C5',  'o': 'C#5',
-      'l': 'D5',  'p': 'D#5',
-      ';': 'E5',
-      "'": 'F5'
-    };
-  </script>
+["attack", "decay", "release", "f-attack", "f-decay", "f-release"].forEach(id => {
+  updateSliderDisplay(id);
+  document.getElementById(id).addEventListener("input", () => updateSliderDisplay(id));
+});
+</script>
 </body>
 </html>
